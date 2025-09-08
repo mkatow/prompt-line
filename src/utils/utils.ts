@@ -33,7 +33,12 @@ function sanitizeCommandArgument(input: string, maxLength = 256): string {
   // Remove dangerous characters that could be used for command injection
   // Allow only alphanumeric, dots, hyphens, underscores, spaces, and safe punctuation
   const sanitized = input
-    .replace(/[;&|`$(){}[\]<>"'\\*?~^]/g, '') // Remove shell metacharacters
+    .replace(
+      process.platform === 'win32' 
+        ? /[;&|`$(){}[\]<>"'*?~^]/g  // Windows: Allow backslashes for paths
+        : /[;&|`$(){}[\]<>"'\\*?~^]/g, // Unix: Backslashes are dangerous
+      '' // Remove shell metacharacters
+    )
     .replace(/\x00/g, '') // Remove null bytes
     .replace(/[\r\n]/g, '') // Remove newlines
     .trim(); // Remove leading/trailing whitespace
@@ -62,7 +67,9 @@ function isCommandArgumentSafe(input: string): boolean {
 
   // Check for dangerous patterns
   const dangerousPatterns = [
-    /[;&|`$(){}[\]<>"'\\*?~^]/, // Shell metacharacters
+    process.platform === 'win32' 
+      ? /[;&|`$(){}[\]<>"'*?~^]/ // Windows: Allow backslashes for paths
+      : /[;&|`$(){}[\]<>"'\\*?~^]/, // Unix: Backslashes are dangerous
     /\x00/, // Null bytes
     /[\r\n]/, // Newlines
     /^-/, // Arguments starting with dash (could be interpreted as flags)
@@ -72,18 +79,20 @@ function isCommandArgumentSafe(input: string): boolean {
   return !dangerousPatterns.some(pattern => pattern.test(input));
 }
 
-// Native tools paths - handle both packaged and development modes
+// Native tools paths - handle both packaged and development modes, cross-platform
 function getNativeToolsPath(): string {
+  const isWindows = process.platform === 'win32';
+  const toolsDirName = isWindows ? 'native-tools-win' : 'native-tools';
+  
   try {
     // Try to import app to check if packaged
-     
     const { app } = require('electron');
     
     if (app && app.isPackaged) {
       // In packaged mode, native tools are in the .asar.unpacked directory
       const appPath = app.getAppPath();
       const resourcesPath = path.dirname(appPath);
-      const nativeToolsPath = path.join(resourcesPath, 'app.asar.unpacked', 'dist', 'native-tools');
+      const nativeToolsPath = path.join(resourcesPath, 'app.asar.unpacked', 'dist', toolsDirName);
       
       return nativeToolsPath;
     }
@@ -92,13 +101,19 @@ function getNativeToolsPath(): string {
   }
   
   // Development mode or fallback
-  return path.join(__dirname, '..', 'native-tools');
+  return path.join(__dirname, '..', toolsDirName);
+}
+
+function getToolExecutable(toolName: string): string {
+  const isWindows = process.platform === 'win32';
+  const extension = isWindows ? '.bat' : '';
+  return path.join(NATIVE_TOOLS_DIR, `${toolName}${extension}`);
 }
 
 const NATIVE_TOOLS_DIR = getNativeToolsPath();
-const WINDOW_DETECTOR_PATH = path.join(NATIVE_TOOLS_DIR, 'window-detector');
-const KEYBOARD_SIMULATOR_PATH = path.join(NATIVE_TOOLS_DIR, 'keyboard-simulator');
-const TEXT_FIELD_DETECTOR_PATH = path.join(NATIVE_TOOLS_DIR, 'text-field-detector');
+const WINDOW_DETECTOR_PATH = getToolExecutable('window-detector');
+const KEYBOARD_SIMULATOR_PATH = getToolExecutable('keyboard-simulator');
+const TEXT_FIELD_DETECTOR_PATH = getToolExecutable('text-field-detector');
 
 // Accessibility permission check result
 interface AccessibilityStatus {
@@ -175,7 +190,11 @@ class Logger {
 
   private writeToFile(message: string, data: unknown): void {
     const fullMessage = data ? `${message} ${JSON.stringify(data)}\n` : `${message}\n`;
-    fs.appendFile(this.logFile, fullMessage).catch(err => {
+    
+    // Ensure log directory exists before writing
+    ensureDir(path.dirname(this.logFile)).then(() => {
+      return fs.appendFile(this.logFile, fullMessage);
+    }).catch(err => {
       console.error('Failed to write to log file:', err);
     });
   }
@@ -214,9 +233,10 @@ function getCurrentApp(): Promise<AppInfo | null> {
   logger.debug('🕐 Starting getCurrentApp()');
   
   return new Promise((resolve) => {
-    // Check platform directly instead of using config to avoid dependency
-    if (process.platform !== 'darwin') {
-      logger.debug(`⏱️  Platform check (non-darwin): ${(performance.now() - startTime).toFixed(2)}ms`);
+    // Check platform support
+    const isSupported = process.platform === 'darwin' || process.platform === 'win32';
+    if (!isSupported) {
+      logger.debug(`⏱️  Platform check (unsupported): ${(performance.now() - startTime).toFixed(2)}ms`);
       resolve(null);
       return;
     }
@@ -271,8 +291,9 @@ function getCurrentApp(): Promise<AppInfo | null> {
 
 function pasteWithNativeTool(): Promise<void> {
   return new Promise((resolve, reject) => {
-    if (process.platform !== 'darwin') {
-      reject(new Error('Native paste only supported on macOS'));
+    const isSupported = process.platform === 'darwin' || process.platform === 'win32';
+    if (!isSupported) {
+      reject(new Error(`Native paste not supported on ${process.platform}`));
       return;
     }
 
@@ -467,7 +488,8 @@ function checkAccessibilityPermission(): Promise<AccessibilityStatus> {
 
 function getActiveWindowBounds(): Promise<WindowBounds | null> {
   return new Promise((resolve) => {
-    if (process.platform !== 'darwin') {
+    const isSupported = process.platform === 'darwin' || process.platform === 'win32';
+    if (!isSupported) {
       resolve(null);
       return;
     }
@@ -516,8 +538,9 @@ function getActiveWindowBounds(): Promise<WindowBounds | null> {
 
 function activateAndPasteWithNativeTool(appInfo: AppInfo | string): Promise<void> {
   return new Promise((resolve, reject) => {
-    if (process.platform !== 'darwin') {
-      reject(new Error('Native paste only supported on macOS'));
+    const isSupported = process.platform === 'darwin' || process.platform === 'win32';
+    if (!isSupported) {
+      reject(new Error(`Native paste not supported on ${process.platform}`));
       return;
     }
 

@@ -64,13 +64,15 @@ class AppConfigClass {
       }
     };
 
+    // Platform-specific shortcuts
+    const isMac = process.platform === 'darwin';
     this.shortcuts = {
-      main: 'Cmd+Shift+Space',
-      paste: 'Cmd+Enter',
+      main: isMac ? 'Cmd+Shift+Space' : 'Ctrl+Alt+Space',
+      paste: isMac ? 'Cmd+Enter' : 'Ctrl+Enter',
       close: 'Escape',
       historyNext: 'Ctrl+j',
       historyPrev: 'Ctrl+k',
-      search: 'Cmd+f'
+      search: isMac ? 'Cmd+f' : 'Ctrl+f'
     };
 
     const userDataDir = path.join(os.homedir(), '.prompt-line');

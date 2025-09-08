@@ -13,14 +13,16 @@ class SettingsManager {
   constructor() {
     this.settingsFile = path.join(os.homedir(), '.prompt-line', 'settings.yml');
     
+    // Platform-specific default shortcuts
+    const isMac = process.platform === 'darwin';
     this.defaultSettings = {
       shortcuts: {
-        main: 'Cmd+Shift+Space',
-        paste: 'Cmd+Enter',
+        main: isMac ? 'Cmd+Shift+Space' : 'Ctrl+Alt+Space',
+        paste: isMac ? 'Cmd+Enter' : 'Ctrl+Enter',
         close: 'Escape',
         historyNext: 'Ctrl+j',
         historyPrev: 'Ctrl+k',
-        search: 'Cmd+f'
+        search: isMac ? 'Cmd+f' : 'Ctrl+f'
       },
       window: {
         position: 'active-text-field',

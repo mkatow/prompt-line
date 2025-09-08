@@ -93,8 +93,24 @@ export class EventHandler {
         return;
       }
 
-      // Handle Cmd+Enter for paste action
-      if (e.key === 'Enter' && e.metaKey) {
+      // Handle paste shortcut (dynamic based on user settings)
+      if (this.userSettings?.shortcuts?.paste) {
+        if (matchesShortcutString(e, this.userSettings.shortcuts.paste)) {
+          e.preventDefault();
+          
+          if (this.textarea) {
+            const text = this.textarea.value.trim();
+            if (text) {
+              await this.onTextPaste(text);
+            }
+          }
+          return;
+        }
+      }
+      
+      // Fallback: Handle Cmd+Enter (macOS) or Ctrl+Enter (Windows/Linux) for paste action
+      const isMetaOrCtrl = e.metaKey || e.ctrlKey;
+      if (e.key === 'Enter' && isMetaOrCtrl) {
         e.preventDefault();
         
         if (this.textarea) {
@@ -167,8 +183,9 @@ export class EventHandler {
         }
       }
 
-      // Handle Cmd+, for opening settings (local shortcut only when window is active)
-      if (e.key === ',' && e.metaKey) {
+      // Handle Cmd+, (macOS) or Ctrl+, (Windows/Linux) for opening settings
+      const isMetaOrCtrlComma = e.metaKey || e.ctrlKey;
+      if (e.key === ',' && isMetaOrCtrlComma) {
         e.preventDefault();
         
         try {

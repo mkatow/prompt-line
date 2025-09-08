@@ -143,7 +143,8 @@ class IPCHandlers {
       await sleep(Math.max(config.timing.windowHideDelay, 5));
 
       try {
-        if (previousApp && config.platform.isMac) {
+        // Handle auto-paste for both macOS and Windows
+        if (previousApp && (config.platform.isMac || config.platform.isWindows)) {
           await activateAndPasteWithNativeTool(previousApp);
           logger.info('Activate and paste operation completed successfully');
           return { success: true };
@@ -160,6 +161,11 @@ class IPCHandlers {
             logger.warn('Paste attempted without focus confirmation');
             return { success: true, warning: 'Could not focus previous application' };
           }
+        } else if (config.platform.isWindows) {
+          // Windows paste without app activation
+          await pasteWithNativeTool();
+          logger.info('Windows paste operation completed successfully');
+          return { success: true };
         } else {
           logger.warn('Auto-paste not supported on this platform');
           return { success: true, warning: 'Auto-paste not supported on this platform' };

@@ -1,14 +1,17 @@
 {
   "name": "prompt-line",
   "version": "0.8.8",
-  "description": "Prompt Line is a macOS app developed to improve the prompt input experience in the terminal for CLI-based AI coding agents such as Claude Code, OpenAI Codex CLI, and Aider.",
+  "description": "Prompt Line is a cross-platform desktop app (macOS/Windows) developed to improve the prompt input experience in the terminal for CLI-based AI coding agents such as Claude Code, OpenAI Codex CLI, and Aider.",
   "main": "dist/main.js",
   "scripts": {
     "start": "npm run compile && electron .",
-    "compile": "tsc && npm run build:renderer && cd native && make install && cp -r ../src/native-tools ../dist/",
+    "compile": "tsc && npm run build:renderer && npm run build:native-tools",
+    "build:native-tools": "node scripts/build-native-tools.js",
     "build:renderer": "vite build && cp src/renderer/input.html dist/renderer/input.html && cp -r src/renderer/styles dist/renderer/",
     "typecheck": "tsc --noEmit",
-    "build": "npm run compile && electron-builder --mac --publish=never",
+    "build": "npm run compile && electron-builder --publish=never",
+    "build:mac": "npm run compile && electron-builder --mac --publish=never",
+    "build:win": "npm run compile && electron-builder --win --publish=never",
     "clean": "rm -rf dist/mac* dist/*.dmg dist/*.zip dist/*.blockmap",
     "release": "semantic-release",
     "test": "jest",
@@ -114,7 +117,8 @@
       "!dist/builder-*"
     ],
     "asarUnpack": [
-      "dist/native-tools/**/*"
+      "dist/native-tools/**/*",
+      "dist/native-tools-win/**/*"
     ],
     "afterSign": "scripts/afterSign.js",
     "mac": {
@@ -140,6 +144,28 @@
           "arch": "arm64"
         }
       ]
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64", "arm64"]
+        },
+        {
+          "target": "portable", 
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "assets/Prompt-Line.ico",
+      "artifactName": "Prompt-Line-${version}-${arch}.${ext}",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": false,
+      "createStartMenuShortcut": true,
+      "displayLanguageSelector": false
     },
     "dmg": {
       "contents": [
