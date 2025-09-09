@@ -26,8 +26,8 @@ class SettingsManager {
       },
       window: {
         position: 'active-text-field',
-        width: 600,
-        height: 300
+        width: 1000,
+        height: 600
       }
     };
 

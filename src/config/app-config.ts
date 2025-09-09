@@ -33,8 +33,8 @@ class AppConfigClass {
 
   private init(): void {
     this.window = {
-      width: 600,
-      height: 300,
+      width: 1000,
+      height: 600,
       frame: false,
       transparent: false,
       backgroundColor: '#141414',

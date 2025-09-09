@@ -89,7 +89,7 @@ function Activate-AppByName {
         # Get the first process with a main window
         foreach ($process in $processes) {
             if ($process.MainWindowHandle -ne [IntPtr]::Zero) {
-                # Only set foreground focus without changing window size/state
+                [Win32]::ShowWindow($process.MainWindowHandle, [Win32]::SW_RESTORE) | Out-Null
                 [Win32]::SetForegroundWindow($process.MainWindowHandle) | Out-Null
                 
                 # Small delay to ensure window is activated
@@ -141,7 +141,7 @@ function Activate-AppByPath {
         # Get the first process with a main window
         foreach ($process in $processes) {
             if ($process.MainWindowHandle -ne [IntPtr]::Zero) {
-                # Only set foreground focus without changing window size/state
+                [Win32]::ShowWindow($process.MainWindowHandle, [Win32]::SW_RESTORE) | Out-Null
                 [Win32]::SetForegroundWindow($process.MainWindowHandle) | Out-Null
                 
                 # Small delay to ensure window is activated
