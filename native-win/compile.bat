@@ -21,9 +21,21 @@ REM Window detector wrapper
 echo @echo off > "%OUTPUT_DIR%\window-detector.bat"
 echo powershell.exe -ExecutionPolicy Bypass -File "%%~dp0window-detector.ps1" %%* >> "%OUTPUT_DIR%\window-detector.bat"
 
-REM Keyboard simulator wrapper  
-echo @echo off > "%OUTPUT_DIR%\keyboard-simulator.bat"
-echo powershell.exe -ExecutionPolicy Bypass -File "%%~dp0keyboard-simulator.ps1" %%* >> "%OUTPUT_DIR%\keyboard-simulator.bat"
+REM Keyboard simulator wrapper with proper argument handling
+(
+echo @echo off 
+echo if "%%1"=="activate-and-paste-bundle" ^(
+echo     powershell.exe -ExecutionPolicy Bypass -File "%%~dp0keyboard-simulator.ps1" -command "%%1" -bundleId "%%~2"
+echo ^) else if "%%1"=="activate-and-paste-name" ^(
+echo     powershell.exe -ExecutionPolicy Bypass -File "%%~dp0keyboard-simulator.ps1" -command "%%1" -appName "%%~2"
+echo ^) else if "%%1"=="activate-bundle" ^(
+echo     powershell.exe -ExecutionPolicy Bypass -File "%%~dp0keyboard-simulator.ps1" -command "%%1" -bundleId "%%~2"
+echo ^) else if "%%1"=="activate-name" ^(
+echo     powershell.exe -ExecutionPolicy Bypass -File "%%~dp0keyboard-simulator.ps1" -command "%%1" -appName "%%~2"
+echo ^) else ^(
+echo     powershell.exe -ExecutionPolicy Bypass -File "%%~dp0keyboard-simulator.ps1" -command "%%1"
+echo ^)
+) > "%OUTPUT_DIR%\keyboard-simulator.bat"
 
 REM Text field detector wrapper
 echo @echo off > "%OUTPUT_DIR%\text-field-detector.bat"
