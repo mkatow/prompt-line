@@ -97,8 +97,11 @@ window:
       await settingsManager.init();
 
       const settings = settingsManager.getSettings();
-      expect(settings.shortcuts.main).toBe('Cmd+Shift+Space');
-      expect(settings.window.position).toBe('active-text-field');
+      // Platform-specific defaults after corruption recovery
+      const expectedMain = process.platform === 'win32' ? 'Ctrl+Alt+Space' : 'Cmd+Shift+Space';
+      const expectedPosition = process.platform === 'win32' ? 'cursor' : 'active-text-field';
+      expect(settings.shortcuts.main).toBe(expectedMain);
+      expect(settings.window.position).toBe(expectedPosition);
     });
   });
 
@@ -113,21 +116,24 @@ window:
     it('should return default settings', () => {
       const settings = settingsManager.getSettings();
       
-      expect(settings).toEqual({
+      // Platform-specific default settings
+      const expectedSettings = {
         shortcuts: {
-          main: 'Cmd+Shift+Space',
-          paste: 'Cmd+Enter',
+          main: process.platform === 'win32' ? 'Ctrl+Alt+Space' : 'Cmd+Shift+Space',
+          paste: process.platform === 'win32' ? 'Ctrl+Enter' : 'Cmd+Enter',
           close: 'Escape',
           historyNext: 'Ctrl+j',
           historyPrev: 'Ctrl+k',
-          search: 'Cmd+f'
+          search: process.platform === 'win32' ? 'Ctrl+f' : 'Cmd+f'
         },
         window: {
-          position: 'active-text-field',
-          width: 600,
-          height: 300
+          position: process.platform === 'win32' ? 'cursor' : 'active-text-field',
+          width: 1000,
+          height: 600
         }
-      });
+      };
+      
+      expect(settings).toEqual(expectedSettings);
     });
 
     it('should update settings partially', async () => {
@@ -146,7 +152,7 @@ window:
 
       const settings = settingsManager.getSettings();
       expect(settings.shortcuts.main).toBe('Ctrl+Shift+P');
-      expect(settings.window.width).toBe(600); // Should remain unchanged
+      expect(settings.window.width).toBe(1000); // Should remain unchanged (new default)
     });
 
     it('should reset settings to defaults', async () => {
@@ -159,8 +165,10 @@ window:
       await settingsManager.resetSettings();
 
       const settings = settingsManager.getSettings();
-      expect(settings.window.position).toBe('active-text-field');
-      expect(settings.window.width).toBe(600);
+      // Platform-specific defaults after reset
+      const expectedPosition = process.platform === 'win32' ? 'cursor' : 'active-text-field';
+      expect(settings.window.position).toBe(expectedPosition);
+      expect(settings.window.width).toBe(1000);
     });
   });
 
@@ -174,7 +182,9 @@ window:
 
     it('should get and update shortcuts', async () => {
       const shortcuts = settingsManager.getShortcuts();
-      expect(shortcuts.main).toBe('Cmd+Shift+Space');
+      // Platform-specific default main shortcut
+      const expectedMain = process.platform === 'win32' ? 'Ctrl+Alt+Space' : 'Cmd+Shift+Space';
+      expect(shortcuts.main).toBe(expectedMain);
 
       await settingsManager.updateShortcuts({ main: 'Alt+Space' });
       
@@ -184,14 +194,16 @@ window:
 
     it('should get and update window settings', async () => {
       const windowSettings = settingsManager.getWindowSettings();
-      expect(windowSettings.position).toBe('active-text-field');
+      // Default position is now platform-specific: Windows uses 'cursor', macOS uses 'active-text-field'
+      const expectedPosition = process.platform === 'win32' ? 'cursor' : 'active-text-field';
+      expect(windowSettings.position).toBe(expectedPosition);
 
       await settingsManager.updateWindowSettings({ position: 'center', width: 800 });
       
       const updatedWindowSettings = settingsManager.getWindowSettings();
       expect(updatedWindowSettings.position).toBe('center');
       expect(updatedWindowSettings.width).toBe(800);
-      expect(updatedWindowSettings.height).toBe(300); // Should remain unchanged
+      expect(updatedWindowSettings.height).toBe(600); // Should remain unchanged (new default)
     });
 
   });
@@ -207,21 +219,24 @@ window:
     it('should return default settings copy', () => {
       const defaults = settingsManager.getDefaultSettings();
       
-      expect(defaults).toEqual({
+      // Expected defaults are platform-specific
+      const expectedDefaults = {
         shortcuts: {
-          main: 'Cmd+Shift+Space',
-          paste: 'Cmd+Enter',
+          main: process.platform === 'win32' ? 'Ctrl+Alt+Space' : 'Cmd+Shift+Space',
+          paste: process.platform === 'win32' ? 'Ctrl+Enter' : 'Cmd+Enter',
           close: 'Escape',
           historyNext: 'Ctrl+j',
           historyPrev: 'Ctrl+k',
-          search: 'Cmd+f'
+          search: process.platform === 'win32' ? 'Ctrl+f' : 'Cmd+f'
         },
         window: {
-          position: 'active-text-field',
-          width: 600,
-          height: 300
+          position: process.platform === 'win32' ? 'cursor' : 'active-text-field',
+          width: 1000,
+          height: 600
         }
-      });
+      };
+      
+      expect(defaults).toEqual(expectedDefaults);
 
       // Ensure it's a copy and not reference
       const originalMain = defaults.shortcuts.main;
