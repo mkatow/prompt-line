@@ -81,28 +81,32 @@ class WindowManager {
       
       // Get current app and space information in parallel for better performance
       const appSpaceStartTime = performance.now();
-      const [currentAppResult, currentSpaceResult] = await Promise.allSettled([
-        getCurrentApp(),
-        this.desktopSpaceManager && this.desktopSpaceManager.isReady() 
-          ? this.desktopSpaceManager.getCurrentSpaceInfo(null) // We'll update with actual app later
-          : Promise.resolve(null)
-      ]);
+      const promises: Promise<any>[] = [getCurrentApp()];
+      
+      // Only add space detection on macOS (Windows doesn't need desktop space management)
+      if (process.platform === 'darwin' && this.desktopSpaceManager && this.desktopSpaceManager.isReady()) {
+        promises.push(this.desktopSpaceManager.getCurrentSpaceInfo(null));
+      } else {
+        promises.push(Promise.resolve(null)); // Windows: skip space detection
+      }
+      
+      const [currentAppResult, currentSpaceResult] = await Promise.allSettled(promises);
       logger.debug(`⏱️  App + Space detection (parallel): ${(performance.now() - appSpaceStartTime).toFixed(2)}ms`);
 
       // Process current app result
-      if (currentAppResult.status === 'fulfilled') {
+      if (currentAppResult && currentAppResult.status === 'fulfilled') {
         this.previousApp = currentAppResult.value;
       } else {
-        logger.error('Failed to get current app:', currentAppResult.reason);
+        logger.error('Failed to get current app:', currentAppResult?.status === 'rejected' ? currentAppResult.reason : 'Unknown error');
         this.previousApp = null;
       }
 
-      // Process space information result
+      // Process space information result (macOS only)
       const spaceProcessStartTime = performance.now();
       let currentSpaceInfo = null;
       let needsWindowRecreation = false;
       
-      if (currentSpaceResult.status === 'fulfilled' && currentSpaceResult.value) {
+      if (process.platform === 'darwin' && currentSpaceResult && currentSpaceResult.status === 'fulfilled' && currentSpaceResult.value) {
         currentSpaceInfo = currentSpaceResult.value;
         
         // Update space info with actual app information
@@ -135,7 +139,7 @@ class WindowManager {
       } else {
         // If space detection is not available, use simple logic
         needsWindowRecreation = !this.inputWindow || this.inputWindow.isDestroyed();
-        if (currentSpaceResult.status === 'rejected') {
+        if (currentSpaceResult && currentSpaceResult.status === 'rejected') {
           logger.warn('Failed to get current space info:', currentSpaceResult.reason);
         }
       }

@@ -25,7 +25,7 @@ class SettingsManager {
         search: isMac ? 'Cmd+f' : 'Ctrl+f'
       },
       window: {
-        position: 'active-text-field',
+        position: process.platform === 'win32' ? 'cursor' : 'active-text-field', // Windows: use cursor for speed
         width: 1000,
         height: 600
       }

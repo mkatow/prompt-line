@@ -228,6 +228,10 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 
+// Cache for getCurrentApp to avoid repeated PowerShell processes (Windows optimization)
+let currentAppCache: { result: AppInfo | null; timestamp: number } | null = null;
+const CURRENT_APP_CACHE_TTL = 200; // 200ms cache for rapid successive calls
+
 function getCurrentApp(): Promise<AppInfo | null> {
   const startTime = performance.now();
   logger.debug('🕐 Starting getCurrentApp()');
@@ -239,6 +243,16 @@ function getCurrentApp(): Promise<AppInfo | null> {
       logger.debug(`⏱️  Platform check (unsupported): ${(performance.now() - startTime).toFixed(2)}ms`);
       resolve(null);
       return;
+    }
+
+    // Use cache for rapid successive calls (Windows PowerShell optimization)
+    if (process.platform === 'win32' && currentAppCache) {
+      const now = Date.now();
+      if (now - currentAppCache.timestamp < CURRENT_APP_CACHE_TTL) {
+        logger.debug(`⚡ Using cached getCurrentApp result: ${(performance.now() - startTime).toFixed(2)}ms`);
+        resolve(currentAppCache.result);
+        return;
+      }
     }
 
     const options = {
@@ -254,6 +268,11 @@ function getCurrentApp(): Promise<AppInfo | null> {
         logger.warn('Error getting current app (non-blocking):', error.message);
         logger.debug(`⏱️  getCurrentApp exec (error): ${execDuration.toFixed(2)}ms`);
         logger.debug(`🏁 Total getCurrentApp time (error): ${(performance.now() - startTime).toFixed(2)}ms`);
+        
+        // Cache null result for Windows
+        if (process.platform === 'win32') {
+          currentAppCache = { result: null, timestamp: Date.now() };
+        }
         resolve(null);
       } else {
         try {
@@ -265,6 +284,11 @@ function getCurrentApp(): Promise<AppInfo | null> {
             logger.warn('Native tool returned error:', result.error);
             logger.debug(`⏱️  getCurrentApp exec (tool error): ${execDuration.toFixed(2)}ms`);
             logger.debug(`🏁 Total getCurrentApp time (tool error): ${(performance.now() - startTime).toFixed(2)}ms`);
+            
+            // Cache null result for Windows
+            if (process.platform === 'win32') {
+              currentAppCache = { result: null, timestamp: Date.now() };
+            }
             resolve(null);
             return;
           }
@@ -274,6 +298,11 @@ function getCurrentApp(): Promise<AppInfo | null> {
             bundleId: result.bundleId === null ? null : result.bundleId
           };
           
+          // Cache result for Windows
+          if (process.platform === 'win32') {
+            currentAppCache = { result: appInfo, timestamp: Date.now() };
+          }
+          
           logger.debug(`⏱️  getCurrentApp exec (success): ${execDuration.toFixed(2)}ms`);
           logger.debug(`🏁 Total getCurrentApp time: ${(performance.now() - startTime).toFixed(2)}ms`);
           logger.debug('Current app detected:', appInfo);
@@ -282,6 +311,11 @@ function getCurrentApp(): Promise<AppInfo | null> {
           logger.warn('Error parsing app info:', parseError);
           logger.debug(`⏱️  getCurrentApp exec (parse error): ${execDuration.toFixed(2)}ms`);
           logger.debug(`🏁 Total getCurrentApp time (parse error): ${(performance.now() - startTime).toFixed(2)}ms`);
+          
+          // Cache null result for Windows
+          if (process.platform === 'win32') {
+            currentAppCache = { result: null, timestamp: Date.now() };
+          }
           resolve(null);
         }
       }
