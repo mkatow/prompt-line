@@ -234,7 +234,7 @@ const CURRENT_APP_CACHE_TTL = 200; // 200ms cache for rapid successive calls
 
 function getCurrentApp(): Promise<AppInfo | null> {
   const startTime = performance.now();
-  logger.debug('🕐 Starting getCurrentApp()');
+  logger.info('🔍 [TIMING] getCurrentApp() started - this is often the slowest part');
   
   return new Promise((resolve) => {
     // Check platform support
@@ -304,7 +304,8 @@ function getCurrentApp(): Promise<AppInfo | null> {
           }
           
           logger.debug(`⏱️  getCurrentApp exec (success): ${execDuration.toFixed(2)}ms`);
-          logger.debug(`🏁 Total getCurrentApp time: ${(performance.now() - startTime).toFixed(2)}ms`);
+          const totalTime = performance.now() - startTime;
+          logger.info(`⏱️  [BOTTLENECK] getCurrentApp COMPLETED: ${totalTime.toFixed(2)}ms`);
           logger.debug('Current app detected:', appInfo);
           resolve(appInfo);
         } catch (parseError) {

@@ -81,17 +81,29 @@ class WindowManager {
       
       // Get current app and space information in parallel for better performance
       const appSpaceStartTime = performance.now();
-      const promises: Promise<any>[] = [getCurrentApp()];
+      logger.info(`🔍 [TIMING] Starting getCurrentApp() at ${appSpaceStartTime.toFixed(2)}ms from start`);
+      
+      const getCurrentAppStart = performance.now();
+      // Windows optimization: Skip getCurrentApp() entirely for speed
+      const promises: Promise<any>[] = [
+        process.platform === 'win32' ? Promise.resolve(null) : getCurrentApp()
+      ];
       
       // Only add space detection on macOS (Windows doesn't need desktop space management)
       if (process.platform === 'darwin' && this.desktopSpaceManager && this.desktopSpaceManager.isReady()) {
         promises.push(this.desktopSpaceManager.getCurrentSpaceInfo(null));
+        logger.info(`🔍 [TIMING] Added desktop space detection to promises`);
       } else {
         promises.push(Promise.resolve(null)); // Windows: skip space detection
+        logger.info(`🔍 [TIMING] Skipped desktop space detection (Windows optimization)`);
       }
       
       const [currentAppResult, currentSpaceResult] = await Promise.allSettled(promises);
-      logger.debug(`⏱️  App + Space detection (parallel): ${(performance.now() - appSpaceStartTime).toFixed(2)}ms`);
+      const appSpaceTime = performance.now() - appSpaceStartTime;
+      const getCurrentAppTime = performance.now() - getCurrentAppStart;
+      
+      logger.info(`⏱️  [BOTTLENECK] getCurrentApp took: ${getCurrentAppTime.toFixed(2)}ms`);
+      logger.info(`⏱️  [BOTTLENECK] App + Space detection total: ${appSpaceTime.toFixed(2)}ms`);
 
       // Process current app result
       if (currentAppResult && currentAppResult.status === 'fulfilled') {
@@ -158,12 +170,16 @@ class WindowManager {
       
       if (!this.inputWindow || this.inputWindow.isDestroyed()) {
         const createStartTime = performance.now();
+        logger.info(`🔨 [TIMING] Starting window creation at ${(createStartTime - startTime).toFixed(2)}ms from start`);
         this.createInputWindow();
-        logger.debug(`⏱️  Window creation: ${(performance.now() - createStartTime).toFixed(2)}ms`);
+        const creationTime = performance.now() - createStartTime;
+        logger.info(`⏱️  [BOTTLENECK] Window creation: ${creationTime.toFixed(2)}ms`);
         
         const positionStartTime = performance.now();
+        logger.info(`📍 [TIMING] Starting window positioning at ${(positionStartTime - startTime).toFixed(2)}ms from start`);
         await this.positionWindow();
-        logger.debug(`⏱️  Window positioning: ${(performance.now() - positionStartTime).toFixed(2)}ms`);
+        const positioningTime = performance.now() - positionStartTime;
+        logger.info(`⏱️  [BOTTLENECK] Window positioning: ${positioningTime.toFixed(2)}ms`);
         
         logger.debug('New window created on current desktop space');
       } else {
@@ -283,7 +299,7 @@ class WindowManager {
     windowHeight: number
   ): Promise<{ x: number; y: number }> {
     const methodStartTime = performance.now();
-    logger.debug(`🕐 Calculating position for: ${position}`);
+    logger.info(`🎯 [TIMING] calculateWindowPosition(${position}) started`);
     
     let result: { x: number; y: number };
     
@@ -325,7 +341,8 @@ class WindowManager {
       }
     }
     
-    logger.debug(`🏁 Total position calculation (${position}): ${(performance.now() - methodStartTime).toFixed(2)}ms`);
+    const totalCalcTime = performance.now() - methodStartTime;
+    logger.info(`⏱️  [BOTTLENECK] calculateWindowPosition(${position}): ${totalCalcTime.toFixed(2)}ms`);
     return result;
   }
 
