@@ -106,7 +106,17 @@ class PromptLineApp {
       const mainShortcut = settings?.shortcuts.main || config.shortcuts.main;
       
       const mainRegistered = globalShortcut.register(mainShortcut, async () => {
-        await this.showInputWindow();
+        const shortcutStartTime = performance.now();
+        logger.info(`🚀 Shortcut ${mainShortcut} pressed - Starting window show process`);
+        
+        try {
+          await this.showInputWindow();
+          const totalTime = performance.now() - shortcutStartTime;
+          logger.info(`✅ TOTAL SHORTCUT RESPONSE TIME: ${totalTime.toFixed(2)}ms (${mainShortcut})`);
+        } catch (error) {
+          const totalTime = performance.now() - shortcutStartTime;
+          logger.error(`❌ Shortcut failed after ${totalTime.toFixed(2)}ms:`, error);
+        }
       });
 
       if (mainRegistered) {

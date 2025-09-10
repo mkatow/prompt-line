@@ -218,6 +218,12 @@ class WindowManager {
         this.inputWindow!.show();
         this.inputWindow!.focus();
         logger.debug(`⏱️  Window show + focus: ${(performance.now() - showStartTime).toFixed(2)}ms`);
+        
+        // Add timing for actual window appearance
+        this.inputWindow!.once('show', () => {
+          const actualShowTime = performance.now() - startTime;
+          logger.info(`🎯 WINDOW ACTUALLY VISIBLE: ${actualShowTime.toFixed(2)}ms from showInputWindow start`);
+        });
       }
       
       logger.debug(`⏱️  Display handling: ${(performance.now() - displayStartTime).toFixed(2)}ms`);
